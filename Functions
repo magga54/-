@@ -1,0 +1,332 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include <string.h>
+#include <locale.h> 
+
+#define precision 0.05
+
+#define FILENAME "output.csv"
+
+#define N 10
+
+#define Nmax 2
+
+int count = 0;
+
+double* rez;
+
+double f1(double xmin);
+
+double f2(double xmin);
+
+double f3(double xmin);
+
+int input_file();
+
+int output_to_file(double rez[], int count);
+
+double find_max(double rez[], int count);
+
+double find_min(double rez[], int count);
+
+int linear_search(double rez[], int count, double y_iskom);
+
+double differentiate(double (*func)(double), double x, double t);
+
+int main()
+{
+    setlocale(LC_CTYPE, "RUS");
+
+    int menu, n;
+
+    double xmin, xmax, dx;
+
+    printf("Данная программа предназначена для расчета значений функции в трех режимах");
+
+    while (1)
+    {
+        printf("\nМеню:\n");
+
+        printf("1) Вывод таблицы значений на экран и в файл\n");
+
+        printf("2) Определение минимального и максимального из вычисленных значений\n");
+
+        printf("3) Линейный поиск значения аргумента при заданном значении функции\n");
+
+        printf("4) Дифференцирование функции в заданной точке\n");
+
+        printf("5) Задание режима и параметров расчета\n");
+
+        printf("6) Индивидуальное задание\n");
+
+        printf("7) Завершение работы\n");
+
+        printf("Выберите опцию: ");
+
+        scanf_s("%i", &menu);
+
+        switch (menu)
+        {
+        case 1:
+        {
+            if (count == 0)
+            {
+                printf("Нет вычисленных значений.\n");
+            }
+            else
+            {
+                for (int i = 0; i < count; i++)
+                {
+                    printf("|%3.d | %6.4lf|\n", i + 1, rez[i]);
+                }
+                output_to_file(rez, count);
+            }
+            break;
+        }
+        case 2:
+        {
+            if (count == 0)
+            {
+                printf("Нет вычисленных значений.\n");
+            }
+            else
+            {
+                printf("Минимальное значение: %lf\n", find_min(rez, count));
+
+                printf("Максимальное значение: %lf\n", find_max(rez, count));
+            }
+            break;
+        }
+        case 3:
+        {
+            double y_iskom;
+
+            printf("Введите значение функции для поиска: ");
+
+            scanf_s("%lf", &y_iskom);
+
+            int index = linear_search(rez, count, y_iskom);
+
+            if (index != -1)
+            {
+                printf("Значение найдено на индексе: %d\n", index);
+            }
+            else {
+                printf("Значение не найдено.\n");
+            }
+            break;
+        }
+        case 4:
+        {
+            double x, t;
+
+            printf("Введите точку для дифференцирования: ");
+
+            scanf_s("%lf", &x);
+
+            printf("Введите шаг t: ");
+
+            scanf_s("%lf", &t);
+
+            double derivative = differentiate(f3, x, t);
+
+            printf("Производная в точке %lf: %lf\n", x, derivative);
+
+            break;
+        }
+        case 5:
+        {
+            int rezhim;
+
+            printf("Выберите режим:\n");
+
+            printf("1) Заданные значения (cvs-файл)\n");
+
+            printf("2) Сгенерированные от xmin с шагом dx(n=10)\n");
+
+            printf("3) Случайные значения из интервала (xmin; xmax)\n");
+
+            printf("Выберите режим: ");
+
+            scanf_s("%i", &rezhim);
+
+            switch (rezhim)
+            {
+            case 1:
+            {
+                input_file();
+
+                break;
+            }
+            case 2:
+            {
+                printf("Введите xmin: ");
+
+                scanf_s("%lf", &xmin);
+
+                printf("Введите шаг dx: ");
+
+                scanf_s("%lf", &dx);
+
+                count = 0;
+
+                rez = (double*)malloc(N * sizeof(double));
+
+                for (; count < N; xmin += dx)
+                {
+                    rez[count++] = f3(xmin);
+                }
+                break;
+            }
+            case 3:
+            {
+                printf("Введите xmin: ");
+
+                scanf_s("%lf", &xmin);
+
+                printf("Введите xmax: ");
+
+                scanf_s("%lf", &xmax);
+
+                rez = (double*)malloc(N * sizeof(double));
+
+                count = 0;
+
+                while (count < N)
+                {
+                    double x = xmin + 1.f * (xmax - xmin) * rand() / RAND_MAX;
+
+                    rez[count++] = f3(x);
+
+                }
+                break;
+            }
+            default:
+            {
+                printf("Неверный выбор. Попробуйте снова.\n");
+            }
+            break;
+            }
+        case 6:
+        {
+            break;
+        }
+        case 7:
+        {
+            printf("Завершение работы.\n");
+
+            break;
+        }
+        default:
+        {
+            printf("Неверный выбор. Попробуйте снова.\n");
+
+            break;
+        }
+        };
+        };
+    };
+};
+
+double differentiate(double (*func)(double), double x, double t) 
+{
+    return (func(x + t) - func(x)) / t;
+}
+
+int linear_search(double rez[], int count, double y_iskom)
+{
+    for (int i = 0; i < count; i++) 
+    {
+        if (fabs(rez[i] - y_iskom) < precision) 
+        {
+            return i;
+        }
+    }
+    return -1;
+}
+
+int input_file() 
+{
+    FILE* file = fopen("input.csv", "r");
+
+    rez = (double*)malloc(sizeof(double) * N);
+
+    count = 0;
+
+    while (fscanf_s(file, "%lf", &rez[count]) != EOF && count < N) 
+    {
+        count++;
+    }
+
+    fclose(file);
+
+    return count;
+}
+
+int output_to_file(double rez[], int count)
+{
+    FILE* file = fopen(FILENAME, "w");
+
+    if (file == NULL) 
+    {
+        return -1;
+    }
+    for (int i = 0; i < count; i++) 
+    {
+        fprintf(file, "%d, %lf\n", i + 1, rez[i]);
+    }
+
+    fclose(file);
+
+}
+
+double find_max(double rez[], int count)
+{
+    double max;
+
+    max = rez[0];
+
+    for (int i = 1; i < count; i++) 
+    {
+        if (rez[i] > max) max = rez[i];
+    }
+    return max;
+}
+double find_min(double rez[], int count)
+{
+    double min;
+
+    min = rez[0];
+
+    for (int i = 1; i < count; i++) 
+    {
+        if (rez[i] < min) min = rez[i];
+    }
+    return min;
+}
+
+double f1(double xmin) 
+{
+    return (asin(0.3 * pow(xmin, -2) * fabs(exp(xmin - 3)))) / (pow(xmin, -3. / 7));
+}
+double f2(double xmin) 
+{
+    if (xmin > 1) return -log(3 * xmin);
+
+    else return 0.5 * pow(xmin, 3);
+}
+double f3(double xmin) 
+{
+    double sum = 0,result = 1;
+
+    int n,factorial;
+
+    for (factorial = 2,n = 1; n < Nmax;n++,factorial++) 
+    {
+        result *= factorial;
+
+        sum += (pow(-1, n) * pow(xmin, 4 * n + 1)) / ((4 * n + 1) * result);
+    }
+    return xmin + sum;
+}
